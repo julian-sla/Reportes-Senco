@@ -247,7 +247,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::post('/visitas/{id}/reprogramar', [\App\Http\Controllers\VisitasTecnicas\VisitaController::class, 'reprogramar'])
         ->name('visitas.reprogramar');
     
-     Route::post('/equipos', [\App\Http\Controllers\VisitasTecnicas\EquipoController::class, 'store'])
+     Route::get('/visitas/{id}/seriales-sugeridos', [\App\Http\Controllers\VisitasTecnicas\EquipoController::class, 'serialesSugeridos'])
+        ->name('equipos.seriales-sugeridos');
+    Route::post('/equipos', [\App\Http\Controllers\VisitasTecnicas\EquipoController::class, 'store'])
         ->name('equipos.store');
     Route::put('/equipos/{id}', [\App\Http\Controllers\VisitasTecnicas\EquipoController::class, 'update'])
         ->name('equipos.update');

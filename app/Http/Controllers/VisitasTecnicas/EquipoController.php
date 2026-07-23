@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class EquipoController extends Controller
 {
@@ -50,7 +51,42 @@ class EquipoController extends Controller
         abort_if(!in_array((int) $visita->ID_ESTADO_ACTUAL, [1, 6], true), 403, 'No se pueden agregar soluciones complementarias en este estado.');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function serialesSugeridos(Request $request, int $id): JsonResponse
+    {
+        $visita = VisitaEncab::with('rutaTecnica')->findOrFail($id);
+        $this->validarAccesoVisita($visita);
+
+        $direccion = trim((string) ($request->input('direccion') ?: $visita->rutaTecnica?->DireccionCompleta ?: ''));
+        if ($direccion === '') {
+            return response()->json([]);
+        }
+
+        $direccionNormalizada = mb_strtolower(preg_replace('/\s+/', '', $direccion));
+
+        $seriales = DB::connection('senco360')
+            ->table('RT_visita_detal as d')
+            ->join('RT_visita_encab as e', 'd.ID_ENC_VISITA', '=', 'e.ID')
+            ->join('RT_rutastecnicas as r', 'e.ID_VISITA', '=', 'r.IdVisita')
+            ->where('e.ID', '!=', $visita->ID)
+            ->whereNotNull('d.SERIAL')
+            ->where('d.SERIAL', '!=', '')
+            ->whereRaw("LOWER(REPLACE(REPLACE(COALESCE(r.DireccionCompleta, ''), ' ', ''), CHAR(9), '')) = ?", [$direccionNormalizada])
+            ->select('d.SERIAL')
+            ->distinct()
+            ->orderBy('d.SERIAL')
+            ->limit(10)
+            ->pluck('SERIAL');
+
+        return response()->json(
+            $seriales
+                ->map(fn ($serial) => trim((string) $serial))
+                ->filter(fn ($serial) => $serial !== '')
+                ->values()
+                ->all()
+        );
+    }
+
+    public function store(Request $request): JsonResponse
     {
         // Decodificar repuestos si viene como JSON string
         if ($request->has('repuestos') && is_string($request->repuestos)) {
@@ -106,7 +142,8 @@ class EquipoController extends Controller
             ])
             ->values();
 
-        DB::connection('senco360')->transaction(function () use ($request, $soluciones, $fallas, $serial, $repuestos) {
+        $equipo = null;
+        DB::connection('senco360')->transaction(function () use ($request, $soluciones, $fallas, $serial, $repuestos, &$equipo) {
             $equipo = VisitaDetal::create([
                 'ID_ENC_VISITA'    => $request->visita_id,
                 'ID_COD_MAX'       => $request->id_cod_max,
@@ -136,35 +173,45 @@ class EquipoController extends Controller
 
             // Guardar evidencia inicial si existe
             if ($request->hasFile('fotos_antes')) {
+                $fotosParaInsertar = [];
+
                 foreach ($request->file('fotos_antes') as $foto) {
-                    $ruta = $foto->store(
-                        'visitas/equipos/' . $equipo->ID,
-                        'public'
-                    );
-                    VisitaFoto::create([
+                    $fotosParaInsertar[] = [
                         'ID_DETALLE_VISITA' => $equipo->ID,
                         'TIPO'              => 'ANTES',
-                        'RUTA_FOTO'         => $ruta,
-                    ]);
+                        'RUTA_FOTO'         => $foto->store(
+                            'visitas/equipos/' . $equipo->ID,
+                            'public'
+                        ),
+                    ];
+                }
+
+                if ($fotosParaInsertar !== []) {
+                    VisitaFoto::query()->insert($fotosParaInsertar);
                 }
             }
 
-            foreach ($repuestos as $repuesto) {
-                SolicitudParte::create([
+            if ($repuestos->isNotEmpty()) {
+                $repuestosParaInsertar = $repuestos->map(fn ($repuesto) => [
                     'ID_DETALLE_VISITA' => $equipo->ID,
                     'ID_COD_MAX_PARTES' => $repuesto['id_cod_max'],
                     'CANTIDAD'          => $repuesto['cantidad'],
                     'ID_ESTADO'         => $repuesto['resolver_en_campo'] ? 19 : 13,
                     'OBSERVACION'       => $repuesto['observacion'],
                     'ES_URGENTE'        => $repuesto['es_urgente'],
-                ]);
+                ])->all();
+
+                SolicitudParte::query()->insert($repuestosParaInsertar);
             }
         });
 
-        return back()->with('success', 'Equipo agregado correctamente.');
+        return response()->json([
+            'success' => true,
+            'id'      => $equipo->ID,
+        ]);
     }
 
-    public function update(Request $request, int $id): RedirectResponse
+    public function update(Request $request, int $id): JsonResponse
     {
         $request->validate([
             'id_cod_max'       => 'required|string|max:100',
@@ -219,7 +266,10 @@ class EquipoController extends Controller
             $equipo->tiposFalla()->sync($fallasConPivot);
         });
 
-        return back()->with('success', 'Equipo actualizado correctamente.');
+        return response()->json([
+            'success' => true,
+            'id'      => $equipo->ID,
+        ]);
     }
 
     public function destroy(int $id): RedirectResponse
@@ -227,15 +277,21 @@ class EquipoController extends Controller
         $equipo = VisitaDetal::with(['encabezado.rutaTecnica', 'fotos'])->findOrFail($id);
         $this->validarEdicionDetalle($equipo->encabezado()->firstOrFail());
 
-        // Eliminar repuestos relacionados antes de eliminar el equipo
-        $equipo->solicitudesPartes()->delete();
-        $equipo->tiposSolucion()->detach();
-        $equipo->tiposFalla()->detach();
-        $equipo->delete();
-        foreach ($equipo->fotos as $foto) {
-        \Illuminate\Support\Facades\Storage::disk('public')->delete($foto->RUTA_FOTO);
-        $foto->delete();
-        }
+        DB::connection('senco360')->transaction(function () use ($equipo): void {
+            foreach ($equipo->fotos as $foto) {
+                if (!empty($foto->RUTA_FOTO)) {
+                    Storage::disk('public')->delete($foto->RUTA_FOTO);
+                }
+
+                $foto->delete();
+            }
+
+            $equipo->solicitudesPartes()->delete();
+            $equipo->tiposSolucion()->detach();
+            $equipo->tiposFalla()->detach();
+            $equipo->delete();
+        });
+
         return back()->with('success', 'Equipo eliminado correctamente.');
     }
 

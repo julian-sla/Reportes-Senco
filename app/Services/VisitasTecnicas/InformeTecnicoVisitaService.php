@@ -184,13 +184,17 @@ class InformeTecnicoVisitaService
                                 'cantidad' => $repuesto->CANTIDAD,
                                 'estado' => $repuesto->estado?->ESTADO ?? 'Sin estado',
                                 'es_urgente' => (bool) $repuesto->ES_URGENTE,
-                                'observaciones' => VisitaEstadoHistorico::query()
-                                    ->where('ID_SOLICITUD_PARTE', $repuesto->ID)
-                                    ->where('ID_ESTADO', $repuesto->ID_ESTADO)
-                                    ->whereNotNull('OBSERVACIONES')
-                                    ->where('OBSERVACIONES', '<>', '')
-                                    ->orderBy('FECHA', 'desc')
-                                    ->value('OBSERVACIONES') ?: null,
+                                'observaciones' => ((
+                                    (int) $repuesto->ID_ESTADO === 19
+                                        ? ($repuesto->OBSERVACION ?: null)
+                                        : VisitaEstadoHistorico::query()
+                                            ->where('ID_SOLICITUD_PARTE', $repuesto->ID)
+                                            ->where('ID_ESTADO', $repuesto->ID_ESTADO)
+                                            ->whereNotNull('OBSERVACIONES')
+                                            ->where('OBSERVACIONES', '<>', '')
+                                            ->orderBy('FECHA', 'desc')
+                                            ->value('OBSERVACIONES')
+                                ) ?: null),
                             ];
                         })
                         ->values(),
