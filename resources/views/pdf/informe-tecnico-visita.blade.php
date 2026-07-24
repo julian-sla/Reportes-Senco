@@ -219,9 +219,10 @@
             $observacionesFinales = $esCapacitacion
                 ? ($equipos->first()['observaciones'] ?? null)
                 : $visita->OBSERVACIONES;
+            $personaFirma = trim((string) ($visita->PROPIETARIOFIRMA ?? ''));
         @endphp
 
-        @if($observacionesFinales || $firmaDataUri)
+        @if($observacionesFinales || $personaFirma !== '' || $firmaDataUri)
             <div class="closing">
                 <div class="closing-title">FINAL</div>
                 <div class="closing-body">
@@ -229,6 +230,13 @@
                         <div class="technical-description">
                             <span class="solution-label">Observaciones finales:</span>
                             {{ $observacionesFinales }}
+                        </div>
+                    @endif
+
+                    @if($personaFirma !== '')
+                        <div class="technical-description">
+                            <span class="solution-label">Persona que firma:</span>
+                            {{ $personaFirma }}
                         </div>
                     @endif
 

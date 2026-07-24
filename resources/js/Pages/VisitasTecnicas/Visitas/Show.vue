@@ -448,6 +448,7 @@ onUnmounted(() => {
 const formFinalizar = useForm({
     fecha_fin: props.visita?.fecha_fin ?? '',
     hora_fin: props.visita?.hora_fin ? String(props.visita.hora_fin).slice(0, 5) : '',
+    propietario_firma: props.visita?.propietario_firma ?? '',
     firma: '',
     observaciones: '',
 })
@@ -1783,6 +1784,7 @@ const guardarSolucionesComplementarias = async () => {
 const abrirModalFinalizar = () => {
     modalFinalizar.value = true
     mostrarAlertaFinalizacion.value = false
+    formFinalizar.propietario_firma = props.visita?.propietario_firma ?? ''
     formFinalizar.firma = ''
     nextTick(() => {
         prepararCanvasFirma()
@@ -2592,6 +2594,10 @@ const guardarBorrador = () => {
         </span>
     </div>
     <div class="px-4 py-4">
+        <div v-if="visita.propietario_firma" class="mb-3 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2">
+            <span class="block text-xs font-medium text-stone-500">Persona que firma</span>
+            <span class="block text-sm font-semibold text-stone-800">{{ visita.propietario_firma }}</span>
+        </div>
 
         <!-- Visita completada — mostrar firma -->
         <div v-if="completado && visita.firma_url">
@@ -3403,6 +3409,14 @@ const guardarBorrador = () => {
                     <label class="block text-xs font-medium text-stone-700 mb-1">Observaciones finales</label>
                     <textarea v-model="formFinalizar.observaciones" rows="3"
                         class="block w-full rounded-lg border-stone-300 text-sm focus:border-[#C8102E] focus:ring-red-100"></textarea>
+                </div>
+                <div v-if="!visita.es_capacitacion" class="mt-4">
+                    <label class="block text-xs font-medium text-stone-700 mb-1">Persona que firma</label>
+                    <input v-model="formFinalizar.propietario_firma" type="text"
+                        class="block w-full rounded-lg border-stone-300 text-sm py-2.5 focus:border-[#C8102E] focus:ring-red-100" />
+                    <p v-if="formFinalizar.errors.propietario_firma" class="mt-1 text-xs text-red-600">
+                        {{ formFinalizar.errors.propietario_firma }}
+                    </p>
                 </div>
                 <div v-if="!visita.es_capacitacion" class="mb-4 mt-4">
                     <div class="flex items-center justify-between mb-1">

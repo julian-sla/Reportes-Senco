@@ -478,6 +478,7 @@ public function show(int $id): Response
             'id'                   => $visita->ID,
             'id_visita'            => $visita->ID_VISITA,
             'correo_cliente'       => $visita->CORREO,
+            'propietario_firma'    => $visita->PROPIETARIOFIRMA,
             'hora_inicio'          => $visita->HORA_INICIO,
             'hora_fin'             => $visita->HORA_FIN,
             'fecha_inicio'         => $visita->FECHA_INICIO,
@@ -617,6 +618,7 @@ public function show(int $id): Response
             'fecha_fin' => 'nullable|date',
             'hora_inicio' => 'nullable|date_format:H:i',
             'hora_fin' => 'nullable|date_format:H:i',
+            'propietario_firma' => 'nullable|string|max:255',
             'firma' => 'nullable|string',
         ]);
 
@@ -661,6 +663,7 @@ public function show(int $id): Response
                 'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
                 'hora_inicio' => 'required|date_format:H:i',
                 'hora_fin' => 'required|date_format:H:i',
+                'propietario_firma' => 'nullable|string|max:255',
                 'firma' => 'nullable|string',
             ]);
 
@@ -681,6 +684,7 @@ public function show(int $id): Response
             $actualizacion['FECHA_FIN'] = $request->fecha_fin;
             $actualizacion['HORA_INICIO'] = $request->hora_inicio;
             $actualizacion['HORA_FIN'] = $request->hora_fin;
+            $actualizacion['PROPIETARIOFIRMA'] = $request->propietario_firma;
         } else {
             $actualizacion['CORREO'] = $request->correo_cliente ?? $visita->CORREO;
             $actualizacion['FECHA_FIN'] = now()->format('Y-m-d');

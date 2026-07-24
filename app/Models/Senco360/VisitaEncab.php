@@ -17,7 +17,7 @@ class VisitaEncab extends Model
         'ID_VISITA', 'CORREO', 'HORA_INICIO', 'HORA_FIN',
         'FECHA_INICIO', 'FECHA_FIN', 'FECHA_REPROGRAMACION',
         'ID_TIPO_SERVICIO', 'OBSERVACIONES', 'ID_ESTADO_ACTUAL',
-        'DETALLE_PUBLICADO_COTIZACION',
+        'DETALLE_PUBLICADO_COTIZACION', 'PROPIETARIOFIRMA',
         // ⚠️ FIRMA_CLIENTE omitida intencionalmente (varbinary, se maneja aparte)
     ];
 
