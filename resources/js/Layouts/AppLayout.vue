@@ -61,7 +61,7 @@ const logout = () => {
                                     <font-awesome-icon icon="chart-simple" class="mr-2"/>
                                     Reportes
                                 </NavLink>
-                                <!-- <NavLink :href="route('service-orders.index')" 
+                                <!-- <NavLink :href="route('service-orders.index')"
                                          :active="route().current('service-orders.*')">
                                     <font-awesome-icon icon="clipboard-list" class="mr-2" />
                                     Órdenes de Servicio
@@ -71,7 +71,7 @@ const logout = () => {
                                     <NavLink :href="route('lista-precios.index')" :active="route().current('lista-precios.*')">
                                         <div class="flex items-center">
                                             <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                       d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                                             </svg>
                                             Lista de Precios
@@ -163,6 +163,12 @@ const logout = () => {
                                                     <font-awesome-icon icon="users" class="mr-2"/>
                                                     Clientes ZeroOne
                                                 </a>
+                                                                                                <!-- Formularios de terceros -->
+                                                <DropdownLink :href="route('gestion-clientes.formularios-terceros.index')">
+                                                    <font-awesome-icon icon="file-lines" class="mr-2"/>
+                                                    Mis formularios
+                                                </DropdownLink>
+
                                             </div>
                                         </template>
                                     </Dropdown>
@@ -368,7 +374,7 @@ const logout = () => {
                             <font-awesome-icon icon="chart-simple" class="mr-2"/>
                             Reportes
                         </ResponsiveNavLink>
-                         <!-- <ResponsiveNavLink :href="route('service-orders.index')" 
+                         <!-- <ResponsiveNavLink :href="route('service-orders.index')"
                            :active="route().current('service-orders.*')">
                             <font-awesome-icon icon="clipboard-list" class="mr-2" />
                         </ResponsiveNavLink> -->

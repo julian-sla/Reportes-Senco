@@ -158,7 +158,7 @@ class VisitaController extends Controller
 
         return back()->with('success', 'Visita reprogramada correctamente.');
     }
-    
+
 
     /**
      * Index — lista de rutas cerradas del técnico
@@ -168,7 +168,7 @@ class VisitaController extends Controller
         $user = auth()->user();
         $puedeVerTodas = $this->puedeVerTodasLasVisitas($user);
         $estadoReprogramadoId = $this->obtenerEstadoId('Reprogramado');
-        $estadoFiltro = (string) $request->get('estado', (string) self::ESTADO_PENDIENTE_POR_INICIAR);
+       $estadoFiltro = (string) $request->get('estado', 'todos');
         $codigoTecnico = $puedeVerTodas ? null : $this->codigoTecnicoDelUsuario($user);
 
         $query = RutaTecnica::query()
@@ -205,25 +205,69 @@ class VisitaController extends Controller
 
         return Inertia::render('VisitasTecnicas/Visitas/Index', [
             'visitas' => $rutas->map(fn ($ruta) => [
-                'id' => $ruta->IdVisita,
-                'id_visita' => $ruta->IdVisita,
-                'numero_ruta' => $ruta->NumeroRuta,
-                'fecha_visita' => $ruta->FechaVisita
-                    ? \Carbon\Carbon::parse($ruta->FechaVisita)->format('Y-m-d')
-                    : null,
-                'tipo_servicio' => $ruta->visitaEncab?->tipoServicio?->TIPO_SERVICIO ?? null,
-                'cliente' => [
-                    'nombre' => $ruta->NombreCliente,
-                    'nit' => $ruta->Nit,
-                ],
-                'direccion' => $ruta->DireccionCompleta,
-                'tecnico' => $ruta->CodTecnico,
-                'estado' => $ruta->visitaEncab?->estadoActual?->ESTADO ?? 'Pendiente por Iniciar',
-                'estado_id' => $ruta->visitaEncab?->ID_ESTADO_ACTUAL ?? self::ESTADO_PENDIENTE_POR_INICIAR,
-                'puede_iniciar' => is_null($ruta->visitaEncab)
-                    || (int) ($ruta->visitaEncab?->ID_ESTADO_ACTUAL ?? 0) === $estadoReprogramadoId,
-                'visita_id' => $ruta->visitaEncab?->ID,
-            ]),
+    'id' => $ruta->IdVisita,
+    'id_visita' => $ruta->IdVisita,
+
+    'numero_ruta' => $ruta->NumeroRuta,
+
+    'fecha_visita' => $ruta->FechaVisita
+        ? \Carbon\Carbon::parse($ruta->FechaVisita)->format('Y-m-d')
+        : null,
+
+    'fecha_inicio_ruta' => $ruta->FechaInicio
+        ? \Carbon\Carbon::parse($ruta->FechaInicio)->format('Y-m-d')
+        : null,
+
+    'fecha_fin_ruta' => $ruta->FechaFin
+        ? \Carbon\Carbon::parse($ruta->FechaFin)->format('Y-m-d')
+        : null,
+
+    'hora_inicio' => $ruta->visitaEncab?->HORA_INICIO,
+    'hora_fin' => $ruta->visitaEncab?->HORA_FIN,
+
+    'fecha_inicio_visita' => $ruta->visitaEncab?->FECHA_INICIO,
+    'fecha_fin_visita' => $ruta->visitaEncab?->FECHA_FIN,
+
+    'fecha_reprogramacion' => $ruta->visitaEncab?->FECHA_REPROGRAMACION,
+
+    'tipo_servicio' => $ruta->visitaEncab?->tipoServicio?->TIPO_SERVICIO ?? null,
+
+    'cliente' => [
+        'nombre' => $ruta->NombreCliente,
+        'nit' => $ruta->Nit,
+    ],
+
+    'direccion' => $ruta->DireccionCompleta,
+
+    'contacto' => $ruta->NomContacto,
+    'telefono_contacto' => $ruta->TelContacto,
+
+    'tecnico' => $ruta->CodTecnico,
+    'vendedor' => $ruta->CodVendedor,
+
+    'observaciones_ruta' => $ruta->Observaciones,
+    'observaciones_visita' => $ruta->visitaEncab?->OBSERVACIONES,
+
+    'correo_cliente' => $ruta->visitaEncab?->CORREO,
+
+    'motivo_reprogramacion' => $ruta->visitaEncab?->MOTIVO_REPROGRAMACION,
+
+    'estado' => $ruta->visitaEncab?->estadoActual?->ESTADO ?? 'Pendiente por Iniciar',
+
+    'estado_id' => $ruta->visitaEncab?->ID_ESTADO_ACTUAL
+        ?? self::ESTADO_PENDIENTE_POR_INICIAR,
+
+    'puede_iniciar' => is_null($ruta->visitaEncab)
+        || (int) ($ruta->visitaEncab?->ID_ESTADO_ACTUAL ?? 0) === $estadoReprogramadoId,
+
+    'visita_id' => $ruta->visitaEncab?->ID,
+
+    'cerrada' => (bool) $ruta->cerrada,
+
+    'fecha_cierre' => $ruta->fecha_cierre
+        ? \Carbon\Carbon::parse($ruta->fecha_cierre)->format('Y-m-d H:i:s')
+        : null,
+]),
             'filtros' => [
                 'buscar' => $request->buscar ?? '',
                 'estado' => $estadoFiltro,
@@ -596,9 +640,9 @@ public function show(int $id): Response
                 'cantidad'  => $r->CANTIDAD,
                 'estado'    => $r->estado?->ESTADO,
                 'estado_id' => $r->ID_ESTADO,
-                'fecha'     => $r->FECHA 
+                'fecha'     => $r->FECHA
                     ? \Carbon\Carbon::parse($r->FECHA)->format('d/m/Y H:i')
-                    : ($r->created_at 
+                    : ($r->created_at
                         ? \Carbon\Carbon::parse($r->created_at)->format('d/m/Y H:i')
                         : null),
             ])
@@ -637,7 +681,7 @@ public function show(int $id): Response
                     15, // Rechazado (no impide cierre)
                 ]))
             );
-            
+
             // Hay repuestos pendientes si alguno está en espera, solicitado, facturado o despachado
             $hayPendientes = $visita->detalle->some(fn($e) =>
                 $e->solicitudesPartes->some(fn($r) => in_array($r->ID_ESTADO, [
@@ -649,7 +693,7 @@ public function show(int $id): Response
                     18, // Repuesto Despachado
                 ]))
             );
-            
+
             $estadoFinal = !$hayPendientes
                 ? self::ESTADO_COMPLETADO
                 : self::ESTADO_PENDIENTE_REPUESTOS;
@@ -672,7 +716,7 @@ public function show(int $id): Response
                 // Comparar solo HH:mm (sin segundos)
                 $horaDbFormato = substr($visita->HORA_INICIO, 0, 5);
                 abort_if(
-                    $request->fecha_inicio !== $visita->FECHA_INICIO || 
+                    $request->fecha_inicio !== $visita->FECHA_INICIO ||
                     $request->hora_inicio !== $horaDbFormato,
                     403,
                     'No se puede modificar fecha de inicio ni hora de inicio después de enviar a cotización.'

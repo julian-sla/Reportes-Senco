@@ -19,7 +19,7 @@ const ESTADO_REPROGRAMADO = 3
 const ESTADO_CANCELADO = 4
 const ESTADO_PENDIENTE_REPUESTOS = 6
 
-const estado = ref(props.filtros.estado ?? String(ESTADO_PENDIENTE_POR_INICIAR))
+const estado = ref(props.filtros.estado ?? 'todos')
 
 const estadosPorMostrar = computed(() => props.estados_visita)
 
@@ -116,7 +116,7 @@ function formatearFechaNatural(fecha) {
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                     Mis Visitas Técnicas
                 </h2>
-                
+
                 <!-- Botón Crear - Solo si tiene permiso -->
                 <Link
                 v-if="puedeCrearCapacitacionLibre || esCapacitacionModulo"
